@@ -38,7 +38,6 @@ S3_REGION = os.getenv("S3_REGION")
 S3_ENDPOINT = os.getenv("S3_ENDPOINT")
 
 for x in [
-    S3_BUCKET_NAME,
     S3_ACCESS_KEY,
     S3_SECRET_KEY,
     S3_REGION,
@@ -108,7 +107,7 @@ def update_status_in_redis(request_id: int, status: Dict[str, str]) -> None:
 
 def upload_file_to_s3(file, file_name, bucket: Optional[str] = None):
     if bucket is None:
-        bucket = S3_BUCKET_NAME
+        raise Exception("No default bucket provided")
     s3_client.put_object(Bucket=bucket, Key=file_name, Body=file)
     return generate_s3_uri(file_name=file_name, bucket=bucket)
 
@@ -215,4 +214,3 @@ def start_server():
 
 if __name__ == "__main__":
     start_server()
-

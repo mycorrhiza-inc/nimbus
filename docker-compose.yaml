@@ -1,5 +1,7 @@
 services:
   switch:
+    env_file:
+      - .env
     build:
       context: ./switch-container
       dockerfile: ./Dockerfile
@@ -9,6 +11,8 @@ services:
       - ./volumes/nimbus/:/nimbus
 
   http-server:
+    env_file:
+      - .env
     build: ./http-server/
     ports:
       - 2718:2718
