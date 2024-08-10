@@ -3,7 +3,7 @@ services:
     build:
       context: ./switch-container
       dockerfile: ./Dockerfile
-    command: python3 /switchdata/runswitch.py
+    command: python3 server_utils.py
     volumes:
       - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
       - ./volumes/nimbus/:/nimbus

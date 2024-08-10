@@ -174,9 +174,11 @@ def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
 
 def process_model_run_from_s3(request_id: int) -> None:
     switch_dir = SWITCHRUNS_DIR / Path(str(request_id))
-    os.makedirs(switch_dir / Path("inputs"), exist_ok=True)
     input_directory = switch_dir / Path("inputs")
+    os.makedirs(switch_dir, exist_ok=True)
+    os.makedirs(input_directory, exist_ok=True)
     output_directory = switch_dir / Path("outputs")
+    os.makedirs(output_directory, exist_ok=True)
 
     # Get PDF URL from Redis
     s3_url = redis_client.hget(str(request_id), "input_files")
@@ -219,10 +221,21 @@ def process_model_run_from_s3(request_id: int) -> None:
                 "error": "Error in retreiving files from s3: " + str(e),
             },
         )
-
+    try:
+        os.cp(input_directory / Path("modules.txt"), switch_dir)
+        os.cp(input_directory / Path("options.txt"), switch_dir)
+    except Exception as e:
+        logger.error(e)
+        update_status_in_redis(
+            request_id,
+            {
+                "status": "error",
+                "success": str(False),
+                "error": "Could not copy options.txt or modules.txt maybe they are missing? : " + str(e),
+            },
+        )
     # Now process as normal
     try:
-        os.makedirs(output_directory, exist_ok=True)
         run_switch_model(switch_dir)
 
         update_status_in_redis(
@@ -234,14 +247,14 @@ def process_model_run_from_s3(request_id: int) -> None:
             },
         )
     except Exception as e:
-        logger.error(f"Encountered error while processing {request_id} in pdf stage")
+        logger.error(f"Encountered error while running switch model: {request_id}")
         logger.error(e)
         update_status_in_redis(
             request_id,
             {
                 "status": "error",
                 "success": str(False),
-                "error": "Error in pdf processing stage: " + str(e),
+                "error": "Error running switch model: " + str(e),
             },
         )
     finally:

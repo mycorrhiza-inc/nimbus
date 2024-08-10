@@ -134,7 +134,7 @@ def generate_s3_uri(
     return s3_uri
 
 
-class PDFProcessor(Controller):
+class SwitchModelRunner(Controller):
     async def run_switch_raw(
         self, s3_url: str, request_id: int, priority: bool
     ) -> dict:
@@ -146,14 +146,12 @@ class PDFProcessor(Controller):
                 "success": str(True),
                 "request_id": str(request_id),
                 "request_check_url": f"https://marker.kessler.xyz/api/v1/marker/{request_id}",
-                "request_check_url_leaf": f"/api/v1/marker/{request_id}",
+                "request_check_url_leaf": f"/api/v1/{request_id}",
                 "input_files": s3_url,
                 "priority": str(priority),
             },
         )
-        redis_client.hset(REDIS_S3_URLS_KEY, str(request_id), s3_url)
         push_to_queue(request_id, priority)
-
         return {
             "success": True,
             "error": "None",
@@ -172,7 +170,7 @@ class PDFProcessor(Controller):
     ) -> dict:
         s3_url = data.s3_url
         request_id = random.randint(100000, 999999)
-        return await self.marker_raw(
+        return await self.run_switch_raw(
             s3_url=s3_url, request_id=request_id, priority=priority
         )
 
@@ -204,7 +202,7 @@ def start_server():
     port = os.environ.get("MARKER_PORT", 2718)
     port = int(port)
     app = Litestar(
-        route_handlers=[PDFProcessor],
+        route_handlers=[SwitchModelRunner],
         exception_handlers={Exception: plain_text_exception_handler},
     )
     run_config = uvicorn.Config(app, port=port, host="0.0.0.0")
