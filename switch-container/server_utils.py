@@ -222,8 +222,8 @@ def process_model_run_from_s3(request_id: int) -> None:
             },
         )
     try:
-        os.cp(input_directory / Path("modules.txt"), switch_dir)
-        os.cp(input_directory / Path("options.txt"), switch_dir)
+        shutil.copy(input_directory / Path("modules.txt"), switch_dir)
+        shutil.copy(input_directory / Path("options.txt"), switch_dir)
     except Exception as e:
         logger.error(e)
         update_status_in_redis(
