@@ -1,6 +1,8 @@
 FROM conda/miniconda3:latest
 
-RUN conda install -c conda-forge switch_model coincbc
+RUN conda install -c conda-forge switch_model coincbc conda
+
+# RUN conda install -c conda-forge switch_model coincbc
 
 
 

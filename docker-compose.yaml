@@ -3,17 +3,19 @@ services:
     build:
       context: ./switch-container
       dockerfile: ./Dockerfile
-  http-server:
-    build: ./http_server/
-    ports:
-      - 2718:2718
-    expose:
-      - 2718
-    env_file:
-      - ./.env
-    environment:
-      - REDIS_HOST = valkey
-    command: "python3 litestar_server.py"
+    command: sleep 10000000
+    volumes:
+      - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
+
+  # http-server:
+  #   build: ./http_server/
+  #   ports:
+  #     - 2718:2718
+  #   expose:
+  #     - 2718
+  #   environment:
+  #     - REDIS_HOST = valkey
+  #   command: "python3 litestar_server.py"
 
   valkey:
     hostname: valkey
