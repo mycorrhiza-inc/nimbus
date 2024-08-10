@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from typing import Optional, Annotated, Any, Dict, Tuple
 import logging
 
-from .run_switch import run_switch_model
+from run_switch import run_switch_model
 
 
 import sys
@@ -231,7 +231,8 @@ def process_model_run_from_s3(request_id: int) -> None:
             {
                 "status": "error",
                 "success": str(False),
-                "error": "Could not copy options.txt or modules.txt maybe they are missing? : " + str(e),
+                "error": "Could not copy options.txt or modules.txt maybe they are missing? : "
+                + str(e),
             },
         )
     # Now process as normal
