@@ -6,6 +6,7 @@ services:
     command: sleep 10000000
     volumes:
       - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
+      - ./volumes/nimbus/:/nimbus
 
   # http-server:
   #   build: ./http_server/
@@ -26,3 +27,4 @@ services:
       - "6379:6379"
     volumes:
       - ./volumes/valkey-data:/data
+

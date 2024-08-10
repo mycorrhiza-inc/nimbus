@@ -11,6 +11,8 @@ from pydantic import BaseModel
 from typing import Optional, Annotated, Any, Dict, Tuple
 import logging
 
+from .run_switch import run_switch_model
+
 
 import sys
 
@@ -171,10 +173,10 @@ def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
 
 
 def process_model_run_from_s3(request_id: int) -> None:
-    doc_dir = SWITCHRUNS_DIR / Path(str(request_id))
-    os.makedirs(doc_dir / Path("inputs"), exist_ok=True)
-    input_directory = doc_dir / Path("inputs")
-    output_directory = doc_dir / Path("outputs")
+    switch_dir = SWITCHRUNS_DIR / Path(str(request_id))
+    os.makedirs(switch_dir / Path("inputs"), exist_ok=True)
+    input_directory = switch_dir / Path("inputs")
+    output_directory = switch_dir / Path("outputs")
 
     # Get PDF URL from Redis
     s3_url = redis_client.hget(str(request_id), "input_files")
@@ -206,7 +208,7 @@ def process_model_run_from_s3(request_id: int) -> None:
         )
     except Exception as e:
         logger.error(
-            f"Encountered error while processing {request_id} in getting file from s3"
+            f"Encountered error while processing {request_id} in getting input file folder from s3"
         )
         logger.error(e)
         update_status_in_redis(
@@ -221,6 +223,7 @@ def process_model_run_from_s3(request_id: int) -> None:
     # Now process as normal
     try:
         os.makedirs(output_directory, exist_ok=True)
+        run_switch_model(switch_dir)
 
         update_status_in_redis(
             request_id,
@@ -242,11 +245,8 @@ def process_model_run_from_s3(request_id: int) -> None:
             },
         )
     finally:
-        shutil.rmtree(doc_dir)
-
-
-def pdf_to_md_path(pdf_path: Path) -> Path:
-    return (pdf_path.parent).parent / Path(f"out/{pdf_path.stem}/{pdf_path.stem}.md")
+        # shutil.rmtree(switch_dir)
+        pass
 
 
 def background_worker():
@@ -260,7 +260,8 @@ def background_worker():
             )
             process_model_run_from_s3(request_id)
         else:
-            time.sleep(1)
+            print("Found no switch model to run checking again in 5 seconds.")
+            time.sleep(5)
 
 
 def start_server():
