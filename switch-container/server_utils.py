@@ -189,78 +189,24 @@ def process_model_run_from_s3(request_id: int) -> None:
         )
         return None
 
-    try:
-        s3_input_bucket, s3_input_files_dir = parse_s3_uri_to_bucket_and_key(s3_url)
-    except Exception as e:
-        logger.error(e)
-        update_status_in_redis(
-            request_id,
-            {
-                "status": "error",
-                "success": str(False),
-                "error": f"No S3 URL could not be parse. {e}",
-            },
-        )
-        return None
-    try:
-        download_folder_from_s3(
-            bucket_name=s3_input_bucket,
-            s3_folder=s3_input_files_dir,
-            local_folder=input_directory,
-        )
-    except Exception as e:
-        logger.error(
-            f"Encountered error while processing {request_id} in getting input file folder from s3"
-        )
-        logger.error(e)
-        update_status_in_redis(
-            request_id,
-            {
-                "status": "error",
-                "success": str(False),
-                "error": "Error in retreiving files from s3: " + str(e),
-            },
-        )
-    try:
-        shutil.copy(input_directory / Path("modules.txt"), switch_dir)
-        shutil.copy(input_directory / Path("options.txt"), switch_dir)
-    except Exception as e:
-        logger.error(e)
-        update_status_in_redis(
-            request_id,
-            {
-                "status": "error",
-                "success": str(False),
-                "error": "Could not copy options.txt or modules.txt maybe they are missing? : "
-                + str(e),
-            },
-        )
-    # Now process as normal
-    try:
-        run_switch_model(switch_dir)
+    s3_input_bucket, s3_input_files_dir = parse_s3_uri_to_bucket_and_key(s3_url)
+    download_folder_from_s3(
+        bucket_name=s3_input_bucket,
+        s3_folder=s3_input_files_dir,
+        local_folder=input_directory,
+    )
+    shutil.copy(input_directory / Path("modules.txt"), switch_dir)
+    shutil.copy(input_directory / Path("options.txt"), switch_dir)
+    run_switch_model(str(switch_dir))
 
-        update_status_in_redis(
-            request_id,
-            {
-                "status": "complete",
-                "success": str(True),
-                "output_files": "Not Implemented Yet",
-            },
-        )
-    except Exception as e:
-        logger.error(f"Encountered error while running switch model: {request_id}")
-        logger.error(e)
-        update_status_in_redis(
-            request_id,
-            {
-                "status": "error",
-                "success": str(False),
-                "error": "Error running switch model: " + str(e),
-            },
-        )
-    finally:
-        # shutil.rmtree(switch_dir)
-        pass
+    update_status_in_redis(
+        request_id,
+        {
+            "status": "complete",
+            "success": str(True),
+            "output_files": "Not Implemented Yet",
+        },
+    )
 
 
 def background_worker():
@@ -272,9 +218,26 @@ def background_worker():
                 f"Beginning to Process model run with request id: {request_id}",
                 file=sys.stderr,
             )
-            process_model_run_from_s3(request_id)
+            try:
+                process_model_run_from_s3(request_id)
+            except Exception as e:
+                logger.error(
+                    f"Encountered error while running switch model: {request_id}"
+                )
+                logger.error(e)
+                update_status_in_redis(
+                    request_id,
+                    {
+                        "status": "error",
+                        "success": str(False),
+                        "error": "Error running switch model: " + str(e),
+                    },
+                )
         else:
-            print("Found no switch model to run checking again in 5 seconds.")
+            print(
+                "Found no switch model to run checking again in 5 seconds.",
+                file=sys.stderr,
+            )
             time.sleep(5)
 
 
