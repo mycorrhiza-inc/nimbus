@@ -9,7 +9,7 @@ services:
       - ./volumes/nimbus/:/nimbus
 
   http-server:
-    build: ./http_server/
+    build: ./http-server/
     ports:
       - 2718:2718
     expose:
@@ -27,4 +27,3 @@ services:
       - "6379:6379"
     volumes:
       - ./volumes/valkey-data:/data
-
