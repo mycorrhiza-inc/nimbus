@@ -135,7 +135,9 @@ def generate_s3_uri(
 
 
 class PDFProcessor(Controller):
-    async def marker_raw(self, s3_url: str, request_id: int, priority: bool) -> dict:
+    async def run_switch_raw(
+        self, s3_url: str, request_id: int, priority: bool
+    ) -> dict:
         # Update Redis with status and S3 URL
         update_status_in_redis(
             request_id,
@@ -145,6 +147,7 @@ class PDFProcessor(Controller):
                 "request_id": str(request_id),
                 "request_check_url": f"https://marker.kessler.xyz/api/v1/marker/{request_id}",
                 "request_check_url_leaf": f"/api/v1/marker/{request_id}",
+                "input_files": s3_url,
                 "priority": str(priority),
             },
         )
@@ -155,30 +158,14 @@ class PDFProcessor(Controller):
             "success": True,
             "error": "None",
             "request_id": str(request_id),
-            "request_check_url": f"https://marker.kessler.xyz/api/v1/marker/{request_id}",
-            "request_check_url_leaf": f"/api/v1/marker/{request_id}",
+            "request_check_url": f"https://marker.kessler.xyz/api/v1/{request_id}",
+            "request_check_url_leaf": f"/api/v1/{request_id}",
+            "input_files": s3_url,
             "priority": str(priority),
         }
 
-    @post(path="/api/v1/marker")
-    async def process_pdf_upload(
-        self,
-        data: Annotated[UploadFile, Body(media_type=RequestEncodingType.MULTI_PART)],
-        priority: bool = True,
-    ) -> dict:
-        file = data.file
-        request_id = random.randint(100000, 999999)
-        s3_file_name = f"{request_id}.pdf"
-        # TODO: Add validation to see if the file exists and you can actually access the server
-
-        # Upload file to S3
-        s3_url = upload_file_to_s3(file.read(), s3_file_name)
-        return await self.marker_raw(
-            s3_url=s3_url, request_id=request_id, priority=priority
-        )
-
-    @post(path="/api/v1/marker/direct_s3_url_upload")
-    async def process_pdf_s3_direct(
+    @post(path="/api/v1/run-switch-model")
+    async def run_switch_model_from_s3_inputfiles(
         self,
         data: S3URLUpload,
         priority: bool = True,
@@ -189,7 +176,7 @@ class PDFProcessor(Controller):
             s3_url=s3_url, request_id=request_id, priority=priority
         )
 
-    @get(path="/api/v1/marker/{request_id:int}")
+    @get(path="/api/v1/{request_id:int}")
     async def get_request_status(
         self,
         request_id: int = Parameter(
@@ -198,7 +185,7 @@ class PDFProcessor(Controller):
     ) -> dict:
         return get_status_from_redis(request_id)
 
-    @post(path="/api/v1/marker/dangerous/clear_queue")
+    @post(path="/api/v1/dangerous/clear_queue")
     async def clear_marker_queue(
         self,
     ) -> str:
@@ -230,3 +217,4 @@ def start_server():
 
 if __name__ == "__main__":
     start_server()
+
