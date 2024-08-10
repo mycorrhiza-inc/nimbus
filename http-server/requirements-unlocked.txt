@@ -1,0 +1,9 @@
+
+redis
+boto3
+botocore
+
+
+pydantic
+
+litestar[standard]
