@@ -213,7 +213,9 @@ def process_model_run_from_s3(request_id: int) -> None:
 def background_worker():
     print("Starting Background Worker", file=sys.stderr)
     while True:
+        print("redis")
         request_id = pop_from_queue()
+        print("takes this long")
         if request_id is not None:
             print(
                 f"Beginning to Process model run with request id: {request_id}",
@@ -243,7 +245,6 @@ def background_worker():
 
 
 def start_server():
-    print("Test output to stdout")
     print("Test output to stderr", file=sys.stderr)
     logger.info("Initializing models and workers.")
     background_worker()
