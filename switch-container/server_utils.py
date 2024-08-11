@@ -133,7 +133,8 @@ def download_file_from_s3_url(s3_url: str, local_path: Path) -> None:
 
 def download_folder_from_s3(bucket_name, s3_folder, local_folder):
     # Initialize a session using Amazon S3
-    bucket = s3_client.Bucket(bucket_name)
+    s3_resource = s3_client.resource()
+    bucket = s3_resource.Bucket(bucket_name)
 
     # Ensure the local folder exists
     if not os.path.exists(local_folder):
