@@ -177,7 +177,7 @@ class SwitchModelRunner(Controller):
     async def get_request_status(
         self,
         request_id: int = Parameter(
-            title="Request ID", description="Request id to retieve"
+            title="Request ID", description="Request id to retrieve"
         ),
     ) -> dict:
         return get_status_from_redis(request_id)
