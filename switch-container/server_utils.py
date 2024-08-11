@@ -153,7 +153,7 @@ def download_folder_from_s3(bucket_name, s3_folder, local_folder):
 
         # Download the file
         bucket.download_file(obj.key, local_file_path)
-        print(f"Downloaded {obj.key} to {local_file_path}")
+        logger.info(f"Downloaded {obj.key} to {local_file_path}")
 
 
 def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
@@ -170,7 +170,9 @@ def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
 
             # Upload the file
             s3_client.upload_file(local_file_path, bucket_name, s3_file_path)
-            print(f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_file_path}")
+            logger.info(
+                f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_file_path}"
+            )
 
 
 def process_model_run_from_s3(request_id: int) -> None:
@@ -211,15 +213,14 @@ def process_model_run_from_s3(request_id: int) -> None:
 
 
 def background_worker():
-    print("Starting Background Worker", file=sys.stderr)
+    logger.info("Starting Background Worker")
     while True:
-        print("redis")
+        logger.info("redis")
         request_id = pop_from_queue()
-        print("takes this long")
+        logger.info("takes this long")
         if request_id is not None:
-            print(
+            logger.info(
                 f"Beginning to Process model run with request id: {request_id}",
-                file=sys.stderr,
             )
             try:
                 process_model_run_from_s3(request_id)
@@ -237,16 +238,13 @@ def background_worker():
                     },
                 )
         else:
-            print(
+            logger.info(
                 "Found no switch model to run checking again in 5 seconds.",
-                file=sys.stderr,
             )
             time.sleep(5)
 
 
 def start_server():
-    print("Test output to stderr", file=sys.stderr)
-    logger.info("Initializing models and workers.")
     background_worker()
 
 

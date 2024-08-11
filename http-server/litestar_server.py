@@ -43,9 +43,9 @@ for x in [
     S3_REGION,
     S3_ENDPOINT,
 ]:
-    print("Test")
-    print("Test 2")
-    print(x)
+    logger.info("Test")
+    logger.info("Test 2")
+    logger.info(x)
     assert isinstance(x, str)
     assert x != ""
 
