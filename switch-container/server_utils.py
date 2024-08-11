@@ -132,47 +132,47 @@ def download_file_from_s3_url(s3_url: str, local_path: Path) -> None:
 
 
 def download_folder_from_s3(bucket_name, s3_folder, local_folder):
-    # Initialize a session using Amazon S3
-    s3_resource = s3_client.resource("s3")
-    bucket = s3_resource.Bucket(bucket_name)
-
+    if isinstance(s3_folder, Path):
+        s3_folder = str(s3_folder)
     # Ensure the local folder exists
     if not os.path.exists(local_folder):
         os.makedirs(local_folder)
 
-    # Iterate over the objects in the specified S3 folder
-    for obj in bucket.objects.filter(Prefix=s3_folder):
-        # Remove the folder prefix from the object key to get the relative path
-        relative_path = os.path.relpath(obj.key, s3_folder)
-        local_file_path = os.path.join(local_folder, relative_path)
+    # List objects within the specified S3 folder
+    paginator = s3_client.get_paginator("list_objects_v2")
+    for page in paginator.paginate(Bucket=bucket_name, Prefix=s3_folder):
+        if "Contents" in page:
+            for obj in page["Contents"]:
+                # Remove the folder prefix from the object key to get the relative path
+                relative_path = os.path.relpath(obj["Key"], s3_folder)
+                local_file_path = os.path.join(local_folder, relative_path)
 
-        # Ensure the local directory exists
-        local_dir = os.path.dirname(local_file_path)
-        if not os.path.exists(local_dir):
-            os.makedirs(local_dir)
+                # Ensure the local directory exists
+                local_dir = os.path.dirname(local_file_path)
+                if not os.path.exists(local_dir):
+                    os.makedirs(local_dir)
 
-        # Download the file
-        bucket.download_file(obj.key, local_file_path)
-        logger.info(f"Downloaded {obj.key} to {local_file_path}")
+                # Download the file
+                s3_client.download_file(bucket_name, obj["Key"], local_file_path)
+                logger.info(f"Downloaded {obj['Key']} to {local_file_path}")
 
-
-def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
-
-    # Walk through the local folder
-    for root, dirs, files in os.walk(local_folder):
-        for file in files:
-            # Construct the full local path
-            local_file_path = os.path.join(root, file)
-
-            # Construct the relative path and then the full S3 path
-            relative_path = os.path.relpath(local_file_path, local_folder)
-            s3_file_path = os.path.join(s3_folder, relative_path).replace("\\", "/")
-
-            # Upload the file
-            s3_client.upload_file(local_file_path, bucket_name, s3_file_path)
-            logger.info(
-                f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_file_path}"
-            )
+    # def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
+    #
+    #     # Walk through the local folder
+    #     for root, dirs, files in os.walk(local_folder):
+    #         for file in files:
+    #             # Construct the full local path
+    #             local_file_path = os.path.join(root, file)
+    #
+    #             # Construct the relative path and then the full S3 path
+    #             relative_path = os.path.relpath(local_file_path, local_folder)
+    #             s3_file_path = os.path.join(s3_folder, relative_path).replace("\\", "/")
+    #
+    #             # Upload the file
+    #             s3_client.upload_file(local_file_path, bucket_name, s3_file_path)
+    #             logger.info(
+    #                 f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_file_path}"
+    #             )
 
 
 def process_model_run_from_s3(request_id: int) -> None:
