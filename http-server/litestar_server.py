@@ -37,26 +37,6 @@ S3_REGION = os.getenv("S3_REGION")
 
 S3_ENDPOINT = os.getenv("S3_ENDPOINT")
 
-for x in [
-    S3_ACCESS_KEY,
-    S3_SECRET_KEY,
-    S3_REGION,
-    S3_ENDPOINT,
-]:
-    logger.info("Test")
-    logger.info("Test 2")
-    logger.info(x)
-    assert isinstance(x, str)
-    assert x != ""
-
-s3_client = boto3.client(
-    "s3",
-    endpoint_url=S3_ENDPOINT,
-    aws_access_key_id=S3_ACCESS_KEY,
-    aws_secret_access_key=S3_SECRET_KEY,
-    region_name=S3_REGION,
-)
-
 
 class PDFUploadFormData(BaseModel):
     file: bytes
@@ -82,6 +62,24 @@ class RequestStatus(BaseModel):
 
 logger = logging.getLogger(__name__)
 
+for x in [
+    S3_ACCESS_KEY,
+    S3_SECRET_KEY,
+    S3_REGION,
+    S3_ENDPOINT,
+]:
+    logger.info("Test")
+    logger.info("Test 2")
+    logger.info(x)
+    assert isinstance(x, str)
+    assert x != ""
+s3_client = boto3.client(
+    "s3",
+    endpoint_url=S3_ENDPOINT,
+    aws_access_key_id=S3_ACCESS_KEY,
+    aws_secret_access_key=S3_SECRET_KEY,
+    region_name=S3_REGION,
+)
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 
 
