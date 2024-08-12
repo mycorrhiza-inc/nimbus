@@ -42,8 +42,9 @@ class PDFUploadFormData(BaseModel):
     file: bytes
 
 
-class S3URLUpload(BaseModel):
-    s3_url: str
+class RunModelData(BaseModel):
+    input_file_s3_url: str
+    model: Optional[str] = None
 
 
 class PathUpload(BaseModel):
@@ -133,42 +134,34 @@ def generate_s3_uri(
 
 class SwitchModelRunner(Controller):
     async def run_switch_raw(
-        self, s3_url: str, request_id: int, priority: bool
+        self, s3_url: str, request_id: int, priority: bool, model: str
     ) -> dict:
-        # Update Redis with status and S3 URL
-        update_status_in_redis(
-            request_id,
-            {
-                "status": "processing",
-                "success": str(True),
-                "request_id": str(request_id),
-                "request_check_url": f"https://marker.kessler.xyz/api/v1/marker/{request_id}",
-                "request_check_url_leaf": f"/api/v1/{request_id}",
-                "input_files": s3_url,
-                "priority": str(priority),
-            },
-        )
-        push_to_queue(request_id, priority)
-        return {
-            "success": True,
-            "error": "None",
+        shared_dict = {
+            "status": "processing",
+            "success": str(True),
             "request_id": str(request_id),
-            "request_check_url": f"https://marker.kessler.xyz/api/v1/{request_id}",
+            "request_check_url": f"https://marker.kessler.xyz/api/v1/marker/{request_id}",
             "request_check_url_leaf": f"/api/v1/{request_id}",
             "input_files": s3_url,
+            "model": model,
             "priority": str(priority),
         }
+        # Update Redis with status and S3 URL
+        update_status_in_redis(request_id, shared_dict)
+        push_to_queue(request_id, priority)
+        return shared_dict
 
     @post(path="/api/v1/run-switch-model")
     async def run_switch_model_from_s3_inputfiles(
         self,
-        data: S3URLUpload,
+        data: RunModelData,
         priority: bool = True,
     ) -> dict:
-        s3_url = data.s3_url
+        s3_url = data.input_file_s3_url
         request_id = random.randint(100000, 999999)
+        extra_info = {model: data.model}
         return await self.run_switch_raw(
-            s3_url=s3_url, request_id=request_id, priority=priority
+            s3_url=s3_url, request_id=request_id, priority=priority, model=data.model
         )
 
     @get(path="/api/v1/{request_id:int}")

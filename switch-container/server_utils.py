@@ -17,7 +17,7 @@ from run_switch import run_switch_model
 import sys
 
 logger = logging.getLogger(__name__)
-logging.basicConfig(level=logging.DEBUG, stream=sys.stderr)
+logging.basicConfig(level=logging.INFO, stream=sys.stderr)
 
 
 class BaseMarkerCliInput(BaseModel):
@@ -72,6 +72,10 @@ S3_SECRET_KEY = os.getenv("S3_SECRET_KEY")
 S3_REGION = os.getenv("S3_REGION")
 S3_ENDPOINT = os.getenv("S3_ENDPOINT")
 
+
+S3_OUTPUT_BUCKET_NAME=os.getenv("S3_OUTPUT_BUCKET_NAME")
+
+
 s3_client = boto3.client(
     "s3",
     endpoint_url=S3_ENDPOINT,
@@ -79,7 +83,13 @@ s3_client = boto3.client(
     aws_secret_access_key=S3_SECRET_KEY,
     region_name=S3_REGION,
 )
-
+s3_resource = boto3.resource(
+    "s3",
+    endpoint_url=S3_ENDPOINT,
+    aws_access_key_id=S3_ACCESS_KEY,
+    aws_secret_access_key=S3_SECRET_KEY,
+    region_name=S3_REGION,
+)
 redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, decode_responses=True)
 from urllib.parse import urlparse
 
@@ -132,47 +142,55 @@ def download_file_from_s3_url(s3_url: str, local_path: Path) -> None:
 
 
 def download_folder_from_s3(bucket_name, s3_folder, local_folder):
-    if isinstance(s3_folder, Path):
-        s3_folder = str(s3_folder)
+    if isinstance(local_folder, Path):
+        local_folder = str(local_folder)
+    logger.info(local_folder)
     # Ensure the local folder exists
     if not os.path.exists(local_folder):
         os.makedirs(local_folder)
+    bucket = s3_resource.Bucket(bucket_name)
+    # Iterate over the objects in the specified S3 folder
+    for obj in bucket.objects.filter(Prefix=s3_folder):
+        logger.info(obj)
+        # Remove the folder prefix from the object key to get the relative path
+        relative_path = os.path.relpath(obj.key, s3_folder)
+        local_file_path = os.path.join(local_folder, relative_path)
+        logger.info(local_file_path)
 
-    # List objects within the specified S3 folder
-    paginator = s3_client.get_paginator("list_objects_v2")
-    for page in paginator.paginate(Bucket=bucket_name, Prefix=s3_folder):
-        if "Contents" in page:
-            for obj in page["Contents"]:
-                # Remove the folder prefix from the object key to get the relative path
-                relative_path = os.path.relpath(obj["Key"], s3_folder)
-                local_file_path = os.path.join(local_folder, relative_path)
+        # Ensure the local directory exists
+        local_dir = os.path.dirname(local_file_path)
 
-                # Ensure the local directory exists
-                local_dir = os.path.dirname(local_file_path)
-                if not os.path.exists(local_dir):
-                    os.makedirs(local_dir)
+        logger.info(local_dir)
+        if not os.path.exists(local_dir):
+            os.makedirs(local_dir)
 
-                # Download the file
-                s3_client.download_file(bucket_name, obj["Key"], local_file_path)
-                logger.info(f"Downloaded {obj['Key']} to {local_file_path}")
+        # Download the file
+        try:
+            bucket.download_file(obj.key, local_file_path)
+        except Exception as e:
+            logger.info(
+                f"Encountered the following error while downloading file, ignoring and moving on: {e}"
+            )
+        else:
+            logger.info(f"Downloaded {obj.key} to {local_file_path}")
 
-    # def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
-    #
-    #     # Walk through the local folder
-    #     for root, dirs, files in os.walk(local_folder):
-    #         for file in files:
-    #             # Construct the full local path
-    #             local_file_path = os.path.join(root, file)
-    #
-    #             # Construct the relative path and then the full S3 path
-    #             relative_path = os.path.relpath(local_file_path, local_folder)
-    #             s3_file_path = os.path.join(s3_folder, relative_path).replace("\\", "/")
-    #
-    #             # Upload the file
-    #             s3_client.upload_file(local_file_path, bucket_name, s3_file_path)
-    #             logger.info(
-    #                 f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_file_path}"
-    #             )
+    def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
+
+        # Walk through the local folder
+        for root, dirs, files in os.walk(local_folder):
+            for file in files:
+                # Construct the full local path
+                local_file_path = os.path.join(root, file)
+
+                # Construct the relative path and then the full S3 path
+                relative_path = os.path.relpath(local_file_path, local_folder)
+                s3_file_path = os.path.join(s3_folder, relative_path).replace("\\", "/")
+
+                # Upload the file
+                s3_client.upload_file(local_file_path, bucket_name, s3_file_path)
+                logger.info(
+                    f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_file_path}"
+                )
 
 
 def process_model_run_from_s3(request_id: int) -> None:
@@ -198,16 +216,28 @@ def process_model_run_from_s3(request_id: int) -> None:
         s3_folder=s3_input_files_dir,
         local_folder=input_directory,
     )
-    shutil.copy(input_directory / Path("modules.txt"), switch_dir)
-    shutil.copy(input_directory / Path("options.txt"), switch_dir)
-    run_switch_model(str(switch_dir))
+    model_name = redis_client.hget(str(request_id), "model")
+    if model_name == "switch":
+        shutil.copy(input_directory / Path("modules.txt"), switch_dir)
+        shutil.copy(input_directory / Path("options.txt"), switch_dir)
+        run_switch_model(str(switch_dir))
+    if model_name == "dummy":
+        shutil.copy(input_directory / Path("*"), output_directory)
+
+    output_bucket_name = S3_OUTPUT_BUCKET_NAME
+    upload_folder_to_s3(        
+        bucket_name=output_bucket_name,
+        s3_folder=str(request_id),
+        local_folder=output_directory,
+)
+    out_url = f"https://{output_bucket_name}.sfo3.digitaloceanspaces.com/{str(request_id}"
 
     update_status_in_redis(
         request_id,
         {
             "status": "complete",
             "success": str(True),
-            "output_files": "Not Implemented Yet",
+            "output_files": out_url,
         },
     )
 
@@ -215,9 +245,7 @@ def process_model_run_from_s3(request_id: int) -> None:
 def background_worker():
     logger.info("Starting Background Worker")
     while True:
-        logger.info("redis")
         request_id = pop_from_queue()
-        logger.info("takes this long")
         if request_id is not None:
             logger.info(
                 f"Beginning to Process model run with request id: {request_id}",
