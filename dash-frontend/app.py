@@ -14,10 +14,10 @@ buildgen = pd.read_csv(file_buildgen)
 buildgen.rename(columns = {'GEN_BLD_YRS_1': 'GENERATION_PROJECT', 'GEN_BLD_YRS_2': 'INVESTMENT_PERIOD'},inplace=True)
 geninfo = pd.read_csv(file_geninfo)
 gen_tech=geninfo[['GENERATION_PROJECT', 'gen_tech']]
-dumb=buildgen.merge(gen_tech, on='GENERATION_PROJECT', how = 'left')
+# dumb=buildgen.merge(gen_tech, on='GENERATION_PROJECT', how = 'left')
 
 # Generate figure
-fig = px.bar(dumb, y='BuildGen',x='INVESTMENT_PERIOD',color="gen_tech")
+# fig = px.bar(dumb, y='BuildGen',x='INVESTMENT_PERIOD',color="gen_tech")
 
 def start_dash():
     app = Dash()
@@ -39,7 +39,7 @@ def start_dash():
     #     fig = px.histogram(df, x='continent', y=col_chosen, histfunc='avg')
     #     return fig
     
-    app.run_server(debug=True, host='0.0.0.0', port=9001)
+    app.run_server(debug=True, host='0.0.0.0', port=9000)
 
 if __name__=="__main__":
     start_dash()
