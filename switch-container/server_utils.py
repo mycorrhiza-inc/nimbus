@@ -73,7 +73,7 @@ S3_REGION = os.getenv("S3_REGION")
 S3_ENDPOINT = os.getenv("S3_ENDPOINT")
 
 
-S3_OUTPUT_BUCKET_NAME=os.getenv("S3_OUTPUT_BUCKET_NAME")
+S3_OUTPUT_BUCKET_NAME = os.getenv("S3_OUTPUT_BUCKET_NAME")
 
 
 s3_client = boto3.client(
@@ -174,23 +174,24 @@ def download_folder_from_s3(bucket_name, s3_folder, local_folder):
         else:
             logger.info(f"Downloaded {obj.key} to {local_file_path}")
 
-    def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
 
-        # Walk through the local folder
-        for root, dirs, files in os.walk(local_folder):
-            for file in files:
-                # Construct the full local path
-                local_file_path = os.path.join(root, file)
+def upload_folder_to_s3(bucket_name, s3_folder, local_folder):
 
-                # Construct the relative path and then the full S3 path
-                relative_path = os.path.relpath(local_file_path, local_folder)
-                s3_file_path = os.path.join(s3_folder, relative_path).replace("\\", "/")
+    # Walk through the local folder
+    for root, dirs, files in os.walk(local_folder):
+        for file in files:
+            # Construct the full local path
+            local_file_path = os.path.join(root, file)
 
-                # Upload the file
-                s3_client.upload_file(local_file_path, bucket_name, s3_file_path)
-                logger.info(
-                    f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_file_path}"
-                )
+            # Construct the relative path and then the full S3 path
+            relative_path = os.path.relpath(local_file_path, local_folder)
+            s3_file_path = os.path.join(s3_folder, relative_path).replace("\\", "/")
+
+            # Upload the file
+            s3_client.upload_file(local_file_path, bucket_name, s3_file_path)
+            logger.info(
+                f"Uploaded {local_file_path} to s3://{bucket_name}/{s3_file_path}"
+            )
 
 
 def process_model_run_from_s3(request_id: int) -> None:
@@ -225,12 +226,14 @@ def process_model_run_from_s3(request_id: int) -> None:
         shutil.copy(input_directory / Path("*"), output_directory)
 
     output_bucket_name = S3_OUTPUT_BUCKET_NAME
-    upload_folder_to_s3(        
+    upload_folder_to_s3(
         bucket_name=output_bucket_name,
         s3_folder=str(request_id),
         local_folder=output_directory,
-)
-    out_url = f"https://{output_bucket_name}.sfo3.digitaloceanspaces.com/{str(request_id}"
+    )
+    out_url = (
+        f"https://{output_bucket_name}.sfo3.digitaloceanspaces.com/{str(request_id)}"
+    )
 
     update_status_in_redis(
         request_id,
