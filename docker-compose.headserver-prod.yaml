@@ -35,7 +35,7 @@ services:
     expose:
       - 9000
     volumes:
-      - /volumes/switchdata/:/switchdata/
+      - ./volumes/switchdata/:/switchdata/
       - ./volumes/nimbus/:/nimbus
     labels:
       - "traefik.enable=true"
