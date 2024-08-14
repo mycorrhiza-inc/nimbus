@@ -35,7 +35,7 @@ services:
     expose:
       - 9000
     volumes:
-      - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
+      - /volumes/switchdata/:/switchdata/
       - ./volumes/nimbus/:/nimbus
     labels:
       - "traefik.enable=true"
