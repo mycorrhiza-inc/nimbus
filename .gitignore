@@ -3,5 +3,6 @@ volumes/
 .env
 node_modules
 __pycache__
+dash-frontend-2
 
 
