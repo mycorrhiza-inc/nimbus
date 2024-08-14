@@ -48,11 +48,5 @@ services:
       - "9000:9000"
     volumes:
       - ./dash-frontend/:/app
-      - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
+      - ./volumes/switchdata/:/switchdata/
       - ./volumes/nimbus/:/nimbus
-  s3-ui:
-    image: cloudlena/s3manager
-    env_file:
-      - s3.env
-    ports:
-      - 8085:8080

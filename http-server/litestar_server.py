@@ -17,6 +17,8 @@ from litestar.status_codes import HTTP_500_INTERNAL_SERVER_ERROR
 import uvicorn
 import logging
 
+from typing import List
+
 from urllib.parse import urlparse
 
 REDIS_HOST = os.getenv("REDIS_HOST", "localhost")
@@ -163,6 +165,20 @@ class SwitchModelRunner(Controller):
         return await self.run_switch_raw(
             s3_url=s3_url, request_id=request_id, priority=priority, model=data.model
         )
+
+    @get(path="/api/v1/get-all-modeldata")
+    async def run_switch_model_from_s3_inputfiles(
+        self,
+    ) -> List[dict]:
+        # TODO : Generate this programatically
+        return [
+            {
+                "name": "scc7a_60_fuel",
+                "visualization_url": "https://nimbus.kessler.xyz/scc7a_60_fuel",
+                "data_url": "https://nimbus.kessler.xyz/scc7a_60_fuel",
+                "date": "10/08/2024",
+            }
+        ]
 
     @get(path="/api/v1/{request_id:int}")
     async def get_request_status(
