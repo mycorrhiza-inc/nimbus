@@ -1,6 +1,7 @@
 volumes/
 .venv 
 .env
+s3.env
 node_modules
 __pycache__
 dash-frontend-2
