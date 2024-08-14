@@ -5,11 +5,16 @@ services:
     build: ./http-server/
     ports:
       - 2718:2718
-    expose:
-      - 2718
     environment:
       - REDIS_HOST = valkey
     command: "python3 litestar_server.py"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.backend.rule=Host(`${DOMAIN:-nimbus.kessler.xyz}`) && PathPrefix(`/api`) || PathPrefix(`/schema`)"
+      - "traefik.http.routers.backend.entrypoints=websecure"
+      - "traefik.http.routers.backend.tls.certresolver=myresolver"
+      # - "traefik.http.routers.backend.tls={}"
+      # - "traefik.http.middlewares.testheader.headers.accesscontrolalloworigin=*"
 
   valkey:
     hostname: valkey
@@ -29,8 +34,35 @@ services:
     command: python3 app.py
     expose:
       - 9000
-    ports:
-      - "9000:9000"
     volumes:
       - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
       - ./volumes/nimbus/:/nimbus
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.frontend.rule=Host(`${DOMAIN:-nimbus.kessler.xyz}`) && PathPrefix(`/`)"
+      - "traefik.http.routers.frontend.entrypoints=websecure"
+      - "traefik.http.routers.frontend.tls.certresolver=myresolver"
+      - "traefik.http.routers.whoami.rule=Host(`${DOMAIN:-nimbus.kessler.xyz}`)"
+      - "traefik.http.routers.whoami.entrypoints=websecure"
+      - "traefik.http.routers.whoami.tls.certresolver=myresolver"
+
+  reverse-proxy:
+    # official image
+    image: traefik:v3.0
+    command:
+      # - "--log.level=DEBUG"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entryPoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      # - "--certificatesresolvers.myresolver.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory"
+      - "--certificatesresolvers.myresolver.acme.email=mbright@kessler.xyz"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+      - "${PROXY_UI_PORT:-8083}:8080"
+    volumes:
+      - "${VOLUMES_DIRECTORY:-./volumes}/letsencrypt:/letsencrypt"
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
