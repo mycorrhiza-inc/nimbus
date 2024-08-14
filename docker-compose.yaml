@@ -7,6 +7,7 @@ services:
       dockerfile: ./Dockerfile
     command: python3 server_utils.py
     volumes:
+      - ./switch-container/:/app
       - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
       - ./volumes/nimbus/:/nimbus
 
@@ -21,6 +22,8 @@ services:
     environment:
       - REDIS_HOST = valkey
     command: "python3 litestar_server.py"
+    volumes:
+      - ./http-server/:/app
 
   valkey:
     hostname: valkey
@@ -44,5 +47,7 @@ services:
     ports:
       - "9000:9000"
     volumes:
+      - ./dash-frontend/:/app
       - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
       - ./volumes/nimbus/:/nimbus
+

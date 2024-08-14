@@ -20,3 +20,17 @@ services:
       - "6379:6379"
     volumes:
       - ./volumes/valkey-data:/data
+  dash:
+    env_file:
+      - .env
+    build:
+      context: ./dash-frontend
+      dockerfile: ./Dockerfile
+    command: python3 app.py
+    expose:
+      - 9000
+    ports:
+      - "9000:9000"
+    volumes:
+      - /home/brad/Documents/energy-democracy/gridmodel/data/switch/scc7a_60_fuel/:/switchdata/
+      - ./volumes/nimbus/:/nimbus
