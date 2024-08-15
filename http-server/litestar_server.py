@@ -169,7 +169,7 @@ class SwitchModelRunner(Controller):
             s3_url=s3_url, request_id=request_id, priority=priority, model=model
         )
 
-    @get(path="/api/v1/models/all")
+    @post(path="/api/v1/models/all")
     async def get_all_models(
         self,
     ) -> List[dict]:
