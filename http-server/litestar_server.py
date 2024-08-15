@@ -14,6 +14,7 @@ from litestar.datastructures import UploadFile
 from litestar.enums import RequestEncodingType
 from litestar.params import Body, Parameter
 from litestar.status_codes import HTTP_500_INTERNAL_SERVER_ERROR
+from litestar.config.cors import CORSConfig
 import uvicorn
 import logging
 
@@ -169,12 +170,13 @@ class SwitchModelRunner(Controller):
         )
 
     @get(path="/api/v1/models/all")
-    async def run_switch_model_from_s3_inputfiles(
+    async def get_all_models(
         self,
     ) -> List[dict]:
         # TODO : Generate this programatically, and include visualization urls in redis
         return [
             {
+                "id": "scc7a_60_fuel",
                 "name": "scc7a_60_fuel",
                 "visualization_url": "https://nimbus.kessler.xyz/scc7a_60_fuel",
                 "data_url": "https://nimbus.kessler.xyz/data/scc7a_60_fuel",
@@ -200,6 +202,9 @@ class SwitchModelRunner(Controller):
         return "Success"
 
 
+cors_config = CORSConfig(allow_origins=["*"])
+
+
 def plain_text_exception_handler(request: Request, exc: Exception) -> Response:
     tb = traceback.format_exc()
     status_code = getattr(exc, "status_code", HTTP_500_INTERNAL_SERVER_ERROR)
@@ -212,6 +217,7 @@ def start_server():
     app = Litestar(
         route_handlers=[SwitchModelRunner],
         exception_handlers={Exception: plain_text_exception_handler},
+        cors_config=cors_config,
     )
     run_config = uvicorn.Config(app, port=port, host="0.0.0.0")
     server = uvicorn.Server(run_config)
