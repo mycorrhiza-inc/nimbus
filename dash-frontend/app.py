@@ -45,26 +45,13 @@ def create_layout(directory_name):
     )
 
 
-homepage_html = html.Div(
-    [
-        html.H3("Multi-page app with Dash Pages"),
-        # TODO: Generate sitemap and display here:
-        # html.Div(
-        #     [
-        #         html.Div(
-        #             dcc.Link(
-        #                 f"{page['name']} - {page['path']}", href=page["relative_path"]
-        #             )
-        #         )
-        #         for page in dash.page_registry.values()
-        #     ]
-        # ),
-    ]
-)
-
 app = Dash(__name__, use_pages=True, pages_folder="")
-dash.register_page("home", path="/", layout=homepage_html)
 # Dynamically generate pages for each directory in DEFAULT_SCENARIO_FOLDER
+homepage_list = [
+    html.H2("An App for easily running economic models."),
+    html.Div(dcc.Link("API Schema", href="/schema/swagger")),
+    html.H3("List of graphs for generated scenarios:"),
+]
 scenario_path = Path(DEFAULT_SCENARIO_FOLDER)
 print(os.listdir(scenario_path))
 for directory in scenario_path.iterdir():
@@ -75,7 +62,12 @@ for directory in scenario_path.iterdir():
             path=f"/{directory.name}",
             layout=create_layout(directory.name),
         )
+        homepage_list.append(
+            html.Div(dcc.Link(f"{directory.name}", href=f"/{directory.name}"))
+        )
 
+homepage_html = html.Div(homepage_list)
+dash.register_page("home", path="/", layout=homepage_html)
 
 app.layout = html.Div(
     [

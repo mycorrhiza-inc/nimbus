@@ -153,34 +153,36 @@ class SwitchModelRunner(Controller):
         push_to_queue(request_id, priority)
         return shared_dict
 
-    @post(path="/api/v1/run-switch-model")
+    @post(path="/api/v1/admin-only/run-switch-model")
     async def run_switch_model_from_s3_inputfiles(
         self,
         data: RunModelData,
         priority: bool = True,
     ) -> dict:
         s3_url = data.input_file_s3_url
+        model = data.model
+        if model is None:
+            model = "switch"
         request_id = random.randint(100000, 999999)
-        extra_info = {model: data.model}
         return await self.run_switch_raw(
-            s3_url=s3_url, request_id=request_id, priority=priority, model=data.model
+            s3_url=s3_url, request_id=request_id, priority=priority, model=model
         )
 
-    @get(path="/api/v1/get-all-modeldata")
+    @get(path="/api/v1/models/all")
     async def run_switch_model_from_s3_inputfiles(
         self,
     ) -> List[dict]:
-        # TODO : Generate this programatically
+        # TODO : Generate this programatically, and include visualization urls in redis
         return [
             {
                 "name": "scc7a_60_fuel",
                 "visualization_url": "https://nimbus.kessler.xyz/scc7a_60_fuel",
-                "data_url": "https://nimbus.kessler.xyz/scc7a_60_fuel",
+                "data_url": "https://nimbus.kessler.xyz/data/scc7a_60_fuel",
                 "date": "10/08/2024",
             }
         ]
 
-    @get(path="/api/v1/{request_id:int}")
+    @get(path="/api/v1/model/{request_id:int}")
     async def get_request_status(
         self,
         request_id: int = Parameter(
@@ -189,7 +191,7 @@ class SwitchModelRunner(Controller):
     ) -> dict:
         return get_status_from_redis(request_id)
 
-    @post(path="/api/v1/dangerous/clear_queue")
+    @post(path="/api/v1/dangerous/clear_model_queue")
     async def clear_marker_queue(
         self,
     ) -> str:
