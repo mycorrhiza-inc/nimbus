@@ -172,16 +172,20 @@ class SwitchModelRunner(Controller):
     @post(path="/api/v1/models/all")
     async def get_all_models(
         self,
-    ) -> List[dict]:
+    ) -> list:
+        # THis type system is hellish, my apologies for the horrible documentation
         # TODO : Generate this programatically, and include visualization urls in redis
         return [
-            {
-                "id": "scc7a_60_fuel",
-                "name": "scc7a_60_fuel",
-                "visualization_url": "https://nimbus.kessler.xyz/scc7a_60_fuel",
-                "data_url": "https://nimbus.kessler.xyz/data/scc7a_60_fuel",
-                "date": "10/08/2024",
-            }
+            [
+                {
+                    "id": "scc7a_60_fuel",
+                    "name": "scc7a_60_fuel",
+                    "visualization_url": "https://nimbus.kessler.xyz/scc7a_60_fuel",
+                    "data_url": "https://nimbus.kessler.xyz/data/scc7a_60_fuel",
+                    "date": "10/08/2024",
+                }
+            ],
+            1,  # Number of pages of results.
         ]
 
     @get(path="/api/v1/model/{request_id:int}")
